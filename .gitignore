@@ -1,0 +1,12 @@
+# 絕不提交任何憑證（第二層保險；第一原則是 token 不放本資料夾）
+*token*
+*secret*
+*.key
+.env
+.env.*
+*.pem
+
+# 本機暫存
+__pycache__/
+*.pyc
+*.log
