@@ -77,6 +77,21 @@ NOTION_TOKEN=ntn_xxx python scripts/notion_publish.py --md draft.md \
 
 ---
 
+## 手動匯入 Notion（零權限備援）
+
+當 connector 未授權、且 workspace 不開放建立 integration（拿不到 token）時，用這條，完全不需任何 API 權限：
+
+**方法 A：Import → Markdown（推薦，表格最穩）**
+1. 在 Notion 目標位置建一頁，或側邊欄下方 **Import（匯入）**。
+2. 選 **Markdown & CSV** → 選要匯入的 `.md`（如 `references/example_energy_label.md`）。
+3. Notion 會建成一頁：標題、段落、bullet、**表格**、引言區塊都會轉好。
+4. 匯入後補上：`{依 FSD 補}` 占位換成實際值；截圖占位處插入實際圖片（Notion 圖片區塊）。
+
+**方法 B：直接貼上**
+- 複製 `.md` 內容 → 貼進空白 Notion 頁。標題/清單會自動轉換；**表格建議改用方法 A 匯入**，貼上不一定會轉成 Notion 表格。
+
+> 產出給手動匯入的 `.md` 不要留 HTML 註解（`<!-- -->`），否則 Notion 會當成文字顯示。本 skill 產出時已避免。
+
 ## 備註
 
 - `Notion-Version` 目前用 `2026-03-11`（撰寫時最新）。Notion 只在**破壞性變更**時發新版；未來若要升版，改 `notion_publish.py` 頂部的 `NOTION_VERSION` 常數即可。

@@ -104,9 +104,23 @@ description: >
 
 依 feature 與內容型別自動指派目的檔與 category（見 `references/kb_schemas.md` 路由）。命中多檔時逐檔各產一條（例如一個新機制常同時要 glossary 名詞 + relations 前後台關係 + traceability 對應）。分類不確定時，選最合適者並在 Summary 標 `Classification-Uncertain` 供 QA 覆寫。
 
-### Gate 4：QA 內容確認
+### Gate 4：QA 內容確認（先預覽 → 確認 → 才輸出檔案）
 
-發布／輸出前，把「完整草稿內容 + 自動分類結果 + archive-worthiness 判斷」整份呈現，取得 QA 對**內容**的確認。QA 未確認前，Notion 不發布、JSON 只標為 `Draft`。
+**兩步，順序不可顛倒：**
+
+1. **先在對話中呈現**：把「細節摘要（archive-worthiness 判斷 + 自動分類結果 + 來源）」加上 **`.md` 檔的大致預覽**（Notion 功能定義頁草稿、以及要合併的 JSON 條目）整份顯示給使用者。此時**不落地任何檔案**。
+2. **取得使用者對內容的確認後**，才寫出最終檔案：
+   - Notion 匯入用的 `.md` → 存到 **`AOCCQA-decision-archiver/notion_pages/`**（見下「產出檔位置」），檔名 `{[市場]_Feature}_{YYYYMMDD}.md`。
+   - glossary/KB JSON 條目 → 一併輸出供合併。
+
+QA 未確認前：不寫檔、不發布 Notion、JSON 只標 `Draft`。確認後才輸出成品並以 `present_files` 交付。
+
+### 產出檔位置
+
+所有給使用者的 `.md` / JSON 成品一律寫進本 skill 所在的 **`AOCCQA-decision-archiver/`** 資料夾：
+
+- `AOCCQA-decision-archiver/notion_pages/` — Notion 匯入用的功能定義頁 `.md`（匯入友善：**不含 HTML 註解 `<!-- -->`**，否則 Notion 會當文字顯示）。
+- `notion_pages/` 已列入 `.gitignore`，不進 repo、不進 `.skill` 包（成品是每輪工作產物，非 skill 原始碼）。
 
 ## 知識庫整合與查重（Token 鐵則）
 
@@ -140,13 +154,27 @@ jq '.rows[]|select(.feature=="X")|{feature,glossary_term_count}' "$KB/Definition
 
 ## Notion 發布
 
-- 產出人類可讀功能定義頁（模板見 `references/templates.md`：功能名／定義／前後台與跨系統關係／規則與技術值／來源／關聯 Jira-FSD）。
+- 產出人類可讀功能定義頁，**結構對齊 AOCC SW PJT 現行 Notion 頁面**：`[市場] Feature` 標題 + 屬性（發案人／建立日期／標籤／FSD／Figma）+ Purpose／顯示邏輯／Magento 後台設定／多語系 UI Info 表／Anatomy 欄位對來源／前台呈現（by 商品型態 Simple・Configurable・Customized Bundle・Related Products）／測試重點／來源。模板見 `references/templates.md`（Template A），完整範例見 `references/example_energy_label.md`。
 - **發布方式**（QA 確認內容後，依序擇一）：
-  1. **Notion 官方 API + Internal Integration Token（預設路徑，免 connector 授權）**：用 `scripts/notion_publish.py` 把 Markdown 草稿建成頁面。首次需依 `references/notion_setup.md` 建 integration、把父頁/庫 Connect 給它、取得父 ID。發布前先 `--dry-run` 確認 payload，再帶 token 正式送出。
-  2. 若 Notion connector 已授權：也可改用 Notion MCP 工具建頁。
-  3. 兩者皆不可行時：輸出可直接貼上的頁面內容（Markdown）供人工貼上。
+  1. **GitHub → Notion 同步**：把符合模板的 Markdown 檔放進 repo，由既有 GitHub→Notion 同步機制帶進 Notion（屬性欄位對映依同步工具設定）。
+  2. **Notion 官方 API + Internal Integration Token**：用 `scripts/notion_publish.py` 把 Markdown 草稿建成頁面。首次需依 `references/notion_setup.md` 建 integration、把父頁/庫 Connect 給它、取得父 ID。發布前先 `--dry-run` 確認 payload，再帶 token 正式送出。
+  3. 若 Notion connector 已授權：也可改用 Notion MCP 工具建頁。
+  4. 皆不可行時：輸出可直接貼上的頁面內容（Markdown）供人工貼上。
 - **Token 資安鐵則**：token 一律**不放本 skill 資料夾**（會同步 OneDrive、且產線 JSON 要合併進公開 GitHub repo）；用環境變數 `NOTION_TOKEN` 或放在同步夾以外的 `--token-file`。細節見 `references/notion_setup.md`。
 - 發布前務必經 Gate 4；不得在 QA 確認前寫入 Notion。
+
+## 書寫與篩選原則（給人看的功能定義頁，務必照做）
+
+**架構**：一律用 `references/templates.md` 的 Template A，逐項對齊團隊實際 Notion export（屬性寫成 `名稱: 值` 純文字行、段落用 `#`、重點用 `<aside>💡</aside>`、情境切「顯示／不顯示」兩張表、影片截圖 `[說明](檔名.mp4)`）。範例見 `example_add_to_cart.md`、`example_energy_label.md`。
+
+**篩選邏輯（先篩掉不需要的，再呈現）**：以「讀的人（新人 / QA / PM）需不需要理解」為準。
+
+- 保留：功能在做什麼、核心決策邏輯（分支／條件）、觸發來源、商品型態、判定條件、導向／顯示結果與觀察點、未受影響／回歸範圍、QA 可查的前後台驗證點、scope／國別／環境時程、正／負／邊界測試點、待釐清。
+- 篩掉：Security / Infrastructure check list（多為 N/A）、DB schema「無變更」、完整 code path（只留 QA 查得到的欄位／URL 驗證點）、PR / deploy 內部、原始 mermaid 碼。
+
+**完整性原則（fill completeness）**：不只照抄一份來源。交叉比對 **FSD（Confluence）＋ 團隊已確認行為（Notion 現行頁 / reviewer 結論）**，把「FSD 沒寫但團隊已確認」的行為補進來，並盡量解掉待釐清；仍無解者才留「待確認」，不臆造。
+
+**書寫風格**：白話 + **實際情境套用**（每條規則配一個具體例子），讓不熟的人也看得懂；**專有名詞保留原文**（Buy Page、add-on、WEP、Cart page…不翻中文）；名詞解釋只放**本次需求相關、較不熟的新詞**，且置於文件**最下方**。
 
 ## Output contract（輸出契約，依序回傳五段）
 
@@ -159,7 +187,7 @@ jq '.rows[]|select(.feature=="X")|{feature,glossary_term_count}' "$KB/Definition
 
 ### 2. Notion Draft（人類可讀）
 
-依模板產出的功能定義頁草稿（狀態：`Draft，待 QA 確認`）。
+依模板產出的功能定義頁草稿（狀態：`Draft，待 QA 確認`）。**先在對話呈現大致預覽**供確認；使用者確認後才寫成 `AOCCQA-decision-archiver/notion_pages/{[市場]_Feature}_{YYYYMMDD}.md`（Notion「Import → Markdown」可直接匯入）。
 
 ### 3. Glossary/KB JSON Entries（AI 可檢索）
 
