@@ -20,18 +20,21 @@ jobs:
           PUSHER: ${{ github.actor }}
           MSG: ${{ github.event.head_commit.message }}
           URL: ${{ github.event.head_commit.url }}
+          TIME: ${{ github.event.head_commit.timestamp }}
         run: |
           if [ -z "$TEAMS_WEBHOOK_URL" ]; then
             echo "TEAMS_WEBHOOK_URL secret 未設定，略過通知。"
             exit 0
           fi
-          TITLE="[AOCCQA KB 更新] $REPO"
           # 手動觸發（workflow_dispatch）時無 head_commit，給預設值以便測試
           MSG="${MSG:-（手動觸發測試，無 commit 訊息）}"
           URL="${URL:-https://github.com/$REPO}"
-          BODY="$PUSHER 更新 main：${MSG}。請 git pull main（或重裝 .skill）同步知識庫。"
+          TIME="${TIME:-手動觸發}"
+          TITLE="$REPO 知識庫更新"
+          DETAILS="$MSG"$'\n\n''請 git pull main（或重裝 .skill）同步知識庫。'
           # 用 jq --arg 安全帶入字串（避免 commit message 內特殊字元破壞 JSON）
-          payload=$(jq -n --arg t "$TITLE" --arg b "$BODY" --arg u "$URL" '{
+          payload=$(jq -n --arg t "$TITLE" --arg b "$DETAILS" --arg u "$URL" \
+            --arg p "$PUSHER" --arg br "main" --arg time "$TIME" '{
             type: "message",
             attachments: [{
               contentType: "application/vnd.microsoft.card.adaptive",
@@ -40,8 +43,16 @@ jobs:
                 "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
                 version: "1.4",
                 body: [
-                  {type: "TextBlock", text: $t, weight: "Bolder", size: "Medium", wrap: true},
-                  {type: "TextBlock", text: $b, wrap: true}
+                  {type: "TextBlock", text: ("🔴 " + $t), weight: "Bolder", size: "Large", color: "Attention", wrap: true},
+                  {type: "FactSet", facts: [
+                    {title: "發起人", value: $p},
+                    {title: "分支", value: $br},
+                    {title: "時間", value: $time}
+                  ]},
+                  {type: "TextBlock", text: "📋 詳細異動內容：", weight: "Bolder", spacing: "Medium", wrap: true},
+                  {type: "Container", style: "emphasis", items: [
+                    {type: "TextBlock", text: $b, wrap: true, fontType: "Monospace"}
+                  ]}
                 ],
                 actions: [{type: "Action.OpenUrl", title: "查看變更", url: $u}]
               }

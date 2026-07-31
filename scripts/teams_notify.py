@@ -42,11 +42,20 @@ def get_url(args):
     return u
 
 
-def build_card(title, body, link):
+def build_card(title, body, link, facts=None, status="🔴", details_header="📋 詳細異動內容："):
+    """狀態標題 + FactSet（欄位區）+ 詳細異動內容（灰底等寬字塊）。"""
+    heading = f"{status} {title}".strip() if status else title
     blocks = [
-        {"type": "TextBlock", "text": title, "weight": "Bolder", "size": "Medium", "wrap": True},
-        {"type": "TextBlock", "text": body, "wrap": True},
+        {"type": "TextBlock", "text": heading, "weight": "Bolder", "size": "Large",
+         "color": "Attention", "wrap": True},
     ]
+    if facts:
+        blocks.append({"type": "FactSet", "facts": [{"title": k, "value": v} for k, v in facts]})
+    blocks.append({"type": "TextBlock", "text": details_header, "weight": "Bolder",
+                   "spacing": "Medium", "wrap": True})
+    blocks.append({"type": "Container", "style": "emphasis", "items": [
+        {"type": "TextBlock", "text": body, "wrap": True, "fontType": "Monospace"}
+    ]})
     card = {
         "type": "AdaptiveCard",
         "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
@@ -54,7 +63,7 @@ def build_card(title, body, link):
         "body": blocks,
     }
     if link:
-        card["actions"] = [{"type": "Action.OpenUrl", "title": "開啟連結", "url": link}]
+        card["actions"] = [{"type": "Action.OpenUrl", "title": "查看變更", "url": link}]
     return {
         "type": "message",
         "attachments": [
@@ -66,13 +75,21 @@ def build_card(title, body, link):
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--title", required=True)
-    ap.add_argument("--body", required=True)
+    ap.add_argument("--body", required=True, help="詳細異動內容（可多行）")
+    ap.add_argument("--fact", action="append", default=[], metavar="標籤=值",
+                    help="欄位區一列，如 --fact \"發起人=Cecilia Yu\"（可重複）")
+    ap.add_argument("--status", default="🔴", help="標題前的狀態符號，預設 🔴")
     ap.add_argument("--link", default="")
     ap.add_argument("--url-file", default="")
     ap.add_argument("--dry-run", action="store_true")
     args = ap.parse_args()
 
-    payload = build_card(args.title, args.body, args.link)
+    facts = []
+    for f in args.fact:
+        if "=" in f:
+            k, v = f.split("=", 1)
+            facts.append((k.strip(), v.strip()))
+    payload = build_card(args.title, args.body, args.link, facts=facts, status=args.status)
 
     if args.dry_run:
         print("=== DRY RUN：以下為將送出的 payload（未送出）===")
