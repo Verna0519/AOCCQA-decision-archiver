@@ -11,6 +11,7 @@
 
 # 每輪工作產物（給使用者的成品，非 skill 原始碼）
 notion_pages/
+kb_drafts/
 
 # 本機暫存
 __pycache__/

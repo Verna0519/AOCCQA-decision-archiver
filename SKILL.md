@@ -72,6 +72,10 @@ description: >
 
 > 白話：**內容要確認、分類自動**。Agent 先把「該不該存、歸哪類、草稿長怎樣」都做好並清楚呈現，QA 只需針對「內容是否正確、是否確認發布」按一次確認；分類已自動填妥。
 
+## 首次載入 / 接手（一次性設定）
+
+第一次使用本 skill 或新人接手時，若尚未設定，先引導對方完成 `MAINTENANCE.md` 第 0 節 Onboarding：安裝 skill、授權 Confluence / Jira 連接器、建置 Teams 通知（GitHub Actions → Teams Workflows webhook：設 `TEAMS_WEBHOOK_URL` secret + 放 `.github/workflows/notify-teams.yml`，用 Actions「Run workflow」測一則）、Watch 三個 repo。設定完才進正常歸檔流程。
+
 ## Required inputs（必要輸入）
 
 1. **已確認的功能定義素材**：至少一項——
@@ -208,6 +212,20 @@ jq '.rows[]|select(.feature=="X")|{feature,glossary_term_count}' "$KB/Definition
 - **Notion**：發布方式（connector 已授權 → 自動建頁；未授權 → 手動貼上內容）。
 - **repo 合併**：把 JSON 條目合進 `AOCCQA_glossary` 與 `AOCCQA-Knowledge-Base` 的哪個檔、glossary 需同步的 `.md`、兩邊 `kb_manifest.json` 計數更新；提醒這是**手動合併**（本 skill 不 commit）。
 
+### 6. 同步與通知提示（每次產出後必做，不可省略）
+
+任何一輪產出 KB 條目 / 功能頁後，**結尾一定要**提示使用者同步，並附可直接送出的通知草稿：
+
+1. **提示同步**：明列本輪要 commit / push（或開 PR）到哪個 repo、要 merge 到 `main`、隊友需 `git pull`（或重裝 `.skill`）。細節依 `MAINTENANCE.md` 第 3 節。
+2. **附通知草稿**（照 `MAINTENANCE.md` 範本填好）：
+   ```
+   [AOCCQA KB 更新] {功能 / Jira 單號} 已 merge 到 main（{commit / PR 連結}）。
+   新增／更新：{條目摘要}。請 git pull main（或重裝 .skill）同步。
+   ```
+3. **實際通知**：團隊用 **Microsoft Teams**——用 `scripts/teams_notify.py` 發到頻道（需先建 Workflows webhook，見 `references/teams_setup.md`；Teams 無 MCP connector）。否則請使用者貼上草稿，或靠 GitHub Watch 內建通知。
+
+> 本 skill 不自行 commit（見安全邊界）；「同步 + 通知」是提示與草稿，實際 push / merge / 發送由 maintainer 執行或明確授權後代發。
+
 ## Completion criteria（完成準則）
 
 - 每筆歸檔內容都可追溯至已確認來源（Jira／FSD／test case／reviewer 結論）。
@@ -217,3 +235,4 @@ jq '.rows[]|select(.feature=="X")|{feature,glossary_term_count}' "$KB/Definition
 - 完整草稿內容已取得 QA 確認（Gate 4）才發布 Notion／輸出最終 JSON。
 - 未 commit 任何 GitHub；合併指引清楚交付使用者。
 - 沒有產生任何 Test Case 內容或 Keep/Cut 清單。
+- 結尾已給「同步 + 通知」提示與通知草稿（見輸出契約第 6 段、`MAINTENANCE.md`）。

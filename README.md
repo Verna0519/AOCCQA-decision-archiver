@@ -101,6 +101,26 @@ python scripts/validate_entries.py --entries new_entries.json \
 
 檢查通過**不代表可合併**——仍須經 QA 內容確認（Gate 4）後，才手動合併進 repo／發布到 Notion。
 
+## 知識庫維護 SOP（團隊照這個走）
+
+> 完整規範（書寫 / 篩選 / 維護 / 同步通知）見 [`MAINTENANCE.md`](MAINTENANCE.md)。下方為摘要。
+
+
+知識庫（`AOCCQA_glossary` / `AOCCQA-Knowledge-Base`）的更新**不會自動同步**給其他人。Git 是「拉」的：commit + push 只更新 repo，隊友要自己 `git pull`（或重裝更新過的 `.skill`）才會拿到。
+
+要分清楚兩層：
+
+- **GitHub repo** = 單一真相（source of truth）。
+- **每個人本機安裝的 skill** = Claude 實際查的副本。**直接改本機快取無效**，且會被下次更新覆蓋——一律改在 repo。
+
+維護流程（測一次、大家同步一次）：
+
+1. **改**：`aoccqa-decision-archiver` 產出 JSON 條目 → `validate_entries.py` 驗過 → QA 開 branch → PR → review → merge 到 `main`。
+2. **散**：隊友定期 `git pull main`；若知識庫以 `.skill` 安裝，由 maintainer 用 `AOCCQA_glossary` 的 `build_skill.sh` 重建 `.skill`，大家重裝一次。
+3. **原則**：只有 maintainer 能 merge 到 `main`；個人不各自本機亂改。合併後同步兩支 repo（glossary 另更 `.md` 與兩邊 `kb_manifest.json` 計數）。
+
+> 一句話：**repo = 共用真相，pull／重裝 = 每個人同步的動作，兩者分開想。**
+
 ## 相依
 
 - `aoccqa-knowledge-base`：查重、抓現有 feature 名、算下一個 id（只查不載，Token 鐵則）。

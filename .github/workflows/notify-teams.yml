@@ -1,0 +1,54 @@
+name: Notify Teams on main update
+
+# repo push 到 main（或手動觸發）時，把更新貼到 Teams 頻道。
+# 走 Teams 的 Power Automate「Workflows」webhook（GitHub for Teams app 被租戶擋，改用此路）。
+# 需在該 repo 設一個 secret：TEAMS_WEBHOOK_URL = 頻道 Workflows 的 webhook URL。
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Post update to Teams
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          REPO: ${{ github.repository }}
+          PUSHER: ${{ github.actor }}
+          MSG: ${{ github.event.head_commit.message }}
+          URL: ${{ github.event.head_commit.url }}
+        run: |
+          if [ -z "$TEAMS_WEBHOOK_URL" ]; then
+            echo "TEAMS_WEBHOOK_URL secret 未設定，略過通知。"
+            exit 0
+          fi
+          TITLE="[AOCCQA KB 更新] $REPO"
+          # 手動觸發（workflow_dispatch）時無 head_commit，給預設值以便測試
+          MSG="${MSG:-（手動觸發測試，無 commit 訊息）}"
+          URL="${URL:-https://github.com/$REPO}"
+          BODY="$PUSHER 更新 main：${MSG}。請 git pull main（或重裝 .skill）同步知識庫。"
+          # 用 jq --arg 安全帶入字串（避免 commit message 內特殊字元破壞 JSON）
+          payload=$(jq -n --arg t "$TITLE" --arg b "$BODY" --arg u "$URL" '{
+            type: "message",
+            attachments: [{
+              contentType: "application/vnd.microsoft.card.adaptive",
+              content: {
+                type: "AdaptiveCard",
+                "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+                version: "1.4",
+                body: [
+                  {type: "TextBlock", text: $t, weight: "Bolder", size: "Medium", wrap: true},
+                  {type: "TextBlock", text: $b, wrap: true}
+                ],
+                actions: [{type: "Action.OpenUrl", title: "查看變更", url: $u}]
+              }
+            }]
+          }')
+          code=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -H "Content-Type: application/json" \
+            -d "$payload" "$TEAMS_WEBHOOK_URL")
+          echo "Teams webhook HTTP $code"
+          [ "$code" -ge 200 ] && [ "$code" -lt 300 ]
