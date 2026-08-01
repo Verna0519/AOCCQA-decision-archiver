@@ -1,6 +1,7 @@
 ---
 name: aoccqa-decision-archiver
-version: 1.0.0
+metadata:
+  version: 1.2.0
 description: >
   AOCCQA 測試案例產線的終端「知識歸檔決策員」。當一輪需求分析／審查已完成，需把「已確認的功能定義與規則解釋」
   （原始需求內容、Gate 1 澄清出的規則、aoccqa-quality-reviewer／testcase-reviewer 查核過程中確認的行為定義）
