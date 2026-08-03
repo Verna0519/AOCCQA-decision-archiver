@@ -15,6 +15,10 @@ AOCCQA 測試案例產線的**終端歸檔 skill**。把一輪需求分析／審
    （`terms` / `relations` / `system_relations` / `ecpages` / `traceability` / `quicklookup`），
    **交你自行合併**進 repo（本 skill 不 commit）。
 
+## 架構流程（Flow Chart）
+
+![AOCCQA Decision Archiver 流程圖](architecture.svg)
+
 ## 核心規範
 
 - **先預覽、確認後才落地**：Gate 4 分兩步且順序不可顛倒——(1) 先在對話中呈現細節摘要 + `.md`／JSON 草稿的大致預覽，此時**不寫任何檔案**；(2) 使用者確認內容後，才寫出最終成品檔。
