@@ -11,9 +11,11 @@ AOCCQA 測試案例產線的**終端歸檔 skill**。把一輪需求分析／審
 
 1. **Notion** — 人類可讀的功能定義頁（給 PM/RD/QA 看的功能定義知識庫），
    結構對齊 AOCC SW PJT 現行 Notion 頁面。
-2. **AOCCQA_glossary + AOCCQA-Knowledge-Base** — 轉譯成兩支 repo 看得懂的 JSON 條目
-   （`terms` / `relations` / `system_relations` / `ecpages` / `traceability` / `quicklookup`），
-   **交你自行合併**進 repo（本 skill 不 commit）。
+2. **AOCCQA-Knowledge-Base（直接寫入）+ AOCCQA_glossary（手動合併）** — 轉譯成 JSON 條目
+   （`terms` / `relations` / `system_relations` / `ecpages` / `traceability` / `quicklookup`）。
+   `AOCCQA-Knowledge-Base` 於確認後**直接寫入本機 repo 檔（不 commit／push）**；`AOCCQA_glossary` 仍**交你手動合併**。
+
+> 這支在**專案收尾**才被叫起；歸檔素材含 **fsd-parser 六段報告** 與 **專案中途已定案的澄清問答／討論結論**（未定案者不算）。
 
 ## 架構流程（Flow Chart）
 
@@ -21,10 +23,11 @@ AOCCQA 測試案例產線的**終端歸檔 skill**。把一輪需求分析／審
 
 ## 核心規範
 
-- **先預覽、確認後才落地**：Gate 4 分兩步且順序不可顛倒——(1) 先在對話中呈現細節摘要 + `.md`／JSON 草稿的大致預覽，此時**不寫任何檔案**；(2) 使用者確認內容後，才寫出最終成品檔。
-- **分類自動、內容要確認**：歸到哪一功能／哪個檔由 Agent 自動指派（QA 可覆寫）；完整草稿內容一律經 QA 人工確認後才發布／輸出。
-- **只歸檔已確認內容**：未確認、待釐清的一律不寫入知識庫。
-- **不做**：重新解析 FSD（屬 fsd-parser）、產 Test Case/Steps（屬 tc-generator）、記錄 Keep/Cut 清單（屬 case-exporter）、直接 commit GitHub。
+- **先挑選、再確認、才落地**：Gate 4 先讓你**勾選這輪要進 KB 的條目**（依需要取捨，只有已確認者可選）；Gate 5 對選中條目先在對話預覽，你確認內容後才落地。此前**不寫任何檔案**。
+- **直接寫入 KB、但不 commit**：確認後由 `merge_into_kb.py` 把條目**直接寫進本機 `AOCCQA-Knowledge-Base`**（`New` 追加／`Update` 依 id 就地改），**不 commit／push**，交你看 `git diff` 後自行推。`AOCCQA_glossary` 仍手動合併。
+- **分類自動**：歸到哪一功能／哪個檔由 Agent 自動指派（QA 可覆寫）。
+- **只歸檔已確認內容**：未確認、待釐清（含中途未定案的問答）一律不寫入，只列「待確認」。
+- **不做**：重新解析 FSD（屬 fsd-parser）、產 Test Case/Steps（屬 tc-generator）、記錄 Keep/Cut 清單（屬 case-exporter）、自動 commit／push GitHub。
 
 ## 檔案結構
 
@@ -40,7 +43,8 @@ AOCCQA-decision-archiver/
 │   ├── example_add_to_cart.md      # 範例：對齊團隊 Notion 的功能定義頁
 │   └── example_energy_label.md     # 範例：對齊團隊 Notion 的功能定義頁
 ├── scripts/
-│   ├── validate_entries.py         # 合併前檢查：schema 齊全、id 不撞號、算下一個 id
+│   ├── validate_entries.py         # 寫入前檢查：schema 齊全、id 不撞號、算下一個 id
+│   ├── merge_into_kb.py            # 直接寫入 AOCCQA-Knowledge-Base（New 追加／Update 就地改；不 commit）
 │   └── notion_publish.py           # 用 Notion API + token 把 Markdown 草稿建成頁面
 └── notion_pages/                   # ← 每輪工作產物（QA 確認後才生成，已 gitignore）
     └── {[市場]_Feature}_{YYYYMMDD}.md
@@ -77,13 +81,14 @@ Simple・Configurable・Customized Bundle・Related Products）、測試重點�
 **書寫風格**：白話 + 實際情境套用（每條規則配一個具體例子）；專有名詞保留原文
 （Buy Page、add-on、WEP、Cart page…不翻中文）；名詞解釋只放本次需求相關的新詞，置於文件最下方。
 
-## 輸出契約（五段）
+## 輸出契約（六段）
 
 1. Archive Decision Summary（來源、archive-worthiness、自動分類、待確認）
 2. Notion Draft（人類可讀頁草稿；**先在對話預覽**，確認後才寫成 `notion_pages/…md`）
 3. Glossary/KB JSON Entries（逐檔 New/Update 條目 + 計數增量）
-4. QA Confirmation Gate（待確認內容項；分類已填可覆寫）→ 確認後才落地檔案
-5. Merge & Publish Instructions（Notion 發布方式 + repo 手動合併步驟）
+4. Selection & QA Confirmation Gate（先勾選這輪要進 KB 的條目 → 再確認選中內容）
+5. Write / Review & Publish（KB 直接寫入 + `git diff` 檢視自行推；glossary 手動合併；Notion 發布）
+6. 同步與通知提示（提醒隊友 pull／重建 `.skill`）
 
 ## Notion 發布（QA 確認內容後，依序擇一）
 
@@ -96,14 +101,22 @@ Simple・Configurable・Customized Bundle・Related Products）、測試重點�
 > **Token 資安鐵則**：token 一律**不放本 skill 資料夾**（會同步 OneDrive、且產線 JSON 要合併進公開 GitHub repo）；
 > 用環境變數 `NOTION_TOKEN` 或放在同步夾以外的 `--token-file`。細節見 `references/notion_setup.md`。
 
-## 合併前檢查
+## 寫入前檢查與寫入
 
 ```bash
-python scripts/validate_entries.py --entries new_entries.json \
-  --kb <aoccqa-knowledge-base>/references
+# 0) 先設定 KB repo 路徑（一次性）
+setx AOCCQA_KB_PATH C:\path\to\AOCCQA-Knowledge-Base        # Windows
+# export AOCCQA_KB_PATH=/path/to/AOCCQA-Knowledge-Base       # macOS/Linux
+
+# 1) 驗證：schema 齊全、id 不撞號、算下一個 id
+python scripts/validate_entries.py --entries selected.json --kb "$AOCCQA_KB_PATH/references"
+
+# 2) 寫入 AOCCQA-Knowledge-Base（先 dry-run，確認後加 --write；不會 commit）
+python scripts/merge_into_kb.py --entries selected.json            # dry-run 只印變更
+python scripts/merge_into_kb.py --entries selected.json --write    # 真的落檔
 ```
 
-檢查通過**不代表可合併**——仍須經 QA 內容確認（Gate 4）後，才手動合併進 repo／發布到 Notion。
+驗證通過**不代表可寫入**——仍須經**挑選（Gate 4）+ QA 內容確認（Gate 5）**後才寫入／發布。寫入後用 `git -C $AOCCQA_KB_PATH diff` 檢視變更，**自行 push**（本 skill 不 commit）。
 
 ## 知識庫維護 SOP（團隊照這個走）
 
@@ -128,6 +141,7 @@ python scripts/validate_entries.py --entries new_entries.json \
 ## 相依
 
 - `aoccqa-knowledge-base`：查重、抓現有 feature 名、算下一個 id（只查不載，Token 鐵則）。
+- **`AOCCQA_KB_PATH`（環境變數）**：指向本機 `AOCCQA-Knowledge-Base` repo 根（或其 `references/`），供直接寫入定位；未設時退回「輸出條目 + 手動合併指引」。
 - **Notion 發布**：預設走 GitHub→Notion 同步或官方 API + Internal Integration Token
   （`scripts/notion_publish.py`，見 `references/notion_setup.md`，免 connector 授權）；
   也可改用已授權的 Notion connector，或退回手動匯入／貼上。

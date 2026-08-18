@@ -34,9 +34,10 @@
 知識庫更新**不會自動同步**。Git 是「拉」的：push 只更新 repo，隊友要自己 `git pull`（或重裝 `.skill`）才會拿到。
 
 - **GitHub repo** = 單一真相；**本機安裝的 skill** = Claude 實際查的副本。直接改本機快取無效且會被覆蓋——一律改在 repo。
-- 流程：archiver 產 JSON 條目 → `validate_entries.py` 驗過 → 開 branch → PR → review → **maintainer** merge 到 `main`。
-- 合併後同步兩支 repo（`AOCCQA_glossary` 另更 `.md` 與兩邊 `kb_manifest.json` 的 `term_count`）。
-- 只有 maintainer 能 merge 到 `main`；個人不各自本機亂改。
+- 流程（`AOCCQA-Knowledge-Base`，直接寫入）：archiver 收尾彙整（含中途已確認問答）→ 使用者**挑選（Gate 4）**→ **內容確認（Gate 5）**→ `validate_entries.py` 驗過 → `merge_into_kb.py --write` **直接寫進本機 repo 工作區**（不 commit）→ **maintainer** `git diff` 檢視 → 開 branch → PR → review → merge `main`。
+- 需先設環境變數 **`AOCCQA_KB_PATH`** 指向本機 `AOCCQA-Knowledge-Base` repo；未設時 archiver 退回「輸出條目 + 手動合併」。
+- `AOCCQA_glossary` 仍**手動合併**（另更 `.md` 與兩邊 `kb_manifest.json` 的 `term_count`）；archiver 只輸出條目 + 指引，不直接寫入。
+- 本 skill **不自動 commit／push**；只有 maintainer 能 merge 到 `main`；個人不各自本機亂改。
 
 ## 3. 同步與通知規範（每次改動後必做）
 

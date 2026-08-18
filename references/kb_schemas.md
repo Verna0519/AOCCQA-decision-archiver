@@ -101,3 +101,27 @@ apis[]:           term*, definition_zh*, detail, feature*, sources*
 - 各檔頂層 metadata 有 `*_count`（如 glossary `term_count`、`feature_index`）。新增條目後重算。
 - `kb_manifest.json` 的 `files[]` 有各檔 size/筆數描述；glossary repo 另有人類可讀 `.md` 需同步。
 - 本 skill 只**建議增量**（+N 筆、feature_index 某功能 +N），實際數字由合併時以工具重算，不手填猜測值。
+
+---
+
+## 直接寫入規則（`AOCCQA-Knowledge-Base` only；`scripts/merge_into_kb.py`）
+
+Gate 5 確認後才寫；只寫 `AOCCQA-Knowledge-Base`，`AOCCQA_glossary` 一律輸出＋手動合併。
+
+- **輸入格式**：沿用 `validate_entries.py` 的「依目的檔分組」，New 放 `items`、Update 放 `updates`：
+  ```json
+  {
+    "Definition_AOCCQA_glossary.json": {
+      "array": "terms",
+      "items":   [ { "id": "CB-627", "...": "...新條目..." } ],
+      "updates": [ { "id": "CB-100", "set": { "definition_zh": "改後定義" } } ]
+    }
+  }
+  ```
+  - id 為鍵的檔（glossary/relations/system_relations/ecpages）：`updates` 用 `{"id": …, "set": {…}}`。
+  - `traceability`：以 `feature` 為鍵，用 `{"feature": …, "set": {…}}`（多為 Update）。
+  - `quicklookup`：多陣列，用 `{"array": "error_messages", "term": …, "set": {…}}`。
+- **New**：id/鍵撞既有庫 → **中止該檔報錯**（不覆寫）；否則追加進對應陣列。
+- **Update**：依鍵定位既有條目，只改 `set` 內欄位；找不到鍵 → 報錯略過；不刪除、不整檔覆寫。
+- **計數**：能重算的頂層 `metadata` 計數與 `kb_manifest.json` 既有數字欄位自動更新；結構非預期時印提醒，交人工確認。
+- **安全**：預設 dry-run，`--write` 才落檔；UTF-8／`ensure_ascii=false`；**絕不執行 git**。寫後用 `git -C $AOCCQA_KB_PATH diff` 檢視再自行 push。
