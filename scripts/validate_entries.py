@@ -26,6 +26,13 @@ import re
 import sys
 from pathlib import Path
 
+# Windows 主控台常是 cp950(Big5)；避免印非 Big5 符號時 UnicodeEncodeError 直接崩潰。
+try:
+    sys.stdout.reconfigure(errors="replace")
+    sys.stderr.reconfigure(errors="replace")
+except Exception:
+    pass
+
 # 每個目的檔的必填欄位與 id 前綴規則
 REQUIRED = {
     "Definition_AOCCQA_glossary.json": {
@@ -158,19 +165,19 @@ def main():
     total = sum(len(b.get("items", [])) for b in entries.values())
     print(f"目的檔 {len(entries)} 個，條目 {total} 筆\n")
     if errors:
-        print(f"❌ 錯誤 {len(errors)}（合併前必須修）：")
+        print(f"[X] 錯誤 {len(errors)}（合併前必須修）：")
         for e in errors:
             print("   -", e)
     if warnings:
-        print(f"\n⚠️  提醒 {len(warnings)}：")
+        print(f"\n[!] 提醒 {len(warnings)}：")
         for w in warnings:
             print("   -", w)
     if notes:
-        print(f"\nℹ️  註記 {len(notes)}：")
+        print(f"\n[i] 註記 {len(notes)}：")
         for n in notes:
             print("   -", n)
     if not errors:
-        print("\n✅ Schema/id 檢查通過。仍須經 QA 內容確認（Gate 4）後才合併／發布。")
+        print("\n[OK] Schema/id 檢查通過。仍須經 QA 內容確認（Gate 5）後才合併／發布。")
     print()
     sys.exit(1 if errors else 0)
 
